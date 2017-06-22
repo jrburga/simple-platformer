@@ -21,6 +21,7 @@ class Sprite(pygame.sprite.DirtySprite):
 
 		self.keys = [K_UP, K_DOWN, K_LEFT, K_RIGHT]
 		self.rect = self.image.get_rect()
+		# self.gravity = (0, 1)
 
 	def update(self, action):
 		# for action in actions:

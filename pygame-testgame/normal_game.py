@@ -24,6 +24,7 @@ class Sprite(pygame.sprite.Sprite):
 		self.rect = self.image.get_rect()
 	def update(self, actions):
 		# if actions: print '----'
+		# self.rect.y += 1
 
 		for action in actions:
 			if action.key in self.keys:

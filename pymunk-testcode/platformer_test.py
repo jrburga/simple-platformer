@@ -17,15 +17,16 @@ class Sprite(pygame.sprite.Sprite):
 		return [self.body, self.shape]
 
 	def update(self):
+		# print self.shape.collision_type
 		pass
 
 class Player(Sprite):
-	def __init__(self):
+	def __init__(self, position):
 		self.gravity = Vec2d(0, -1000)
 		self.mass = 5
 		self.body = pymunk.Body(self.mass, pymunk.inf)
 		self.shape = pymunk.Circle(self.body, 10)
-		self.body.position = (300, 300)
+		self.body.position = position
 		Sprite.__init__(self, self.body)
 
 		self.actions = {
@@ -34,28 +35,55 @@ class Player(Sprite):
 			K_UP: lambda: self.jump()
 		}
 
-		self.max_speed = 100. *2.
-		self.accel_time = 0.05
-		self.accel = (self.max_speed/self.accel_time)
+		self.max_speed = 100*2.
+
+		self.shape.friction = 1.0
+		print self.shape.friction
+
+
 		self.target_vx = 0
 		self.jumping = False
+
+		self.grounded = False
+		# self.body.each_arbiter(self.collision_handler)
+
+	def ground_collision(self, arbiter):
+		N = arbiter.contact_point_set.normal
+		if arbiter.shapes[1].body:
+			if (N.y != 0 and abs(N.x/N.y) < self.shape.friction):
+				self.grounded = True
+
+			
+		# print 'something happened'
+		# return True
+
 	def walk(self, direction):
 		self.direction = direction
+
 		# self.target_vx = direction*self.max_speed
-		self.shape.surface_velocity = (-self.max_speed*direction, 0)
+		self.shape.surface_velocity = Vec2d(-self.max_speed*direction, 0)
+		# print self.shape.surface_velocity
 		# print 'walking', direction
 		# self.body.apply_impulse_at_local_point(Vec2d(direction*100, 0), (0, 0))
-		# self.body.velocity = Vec2d(self.max_speed*direction, self.body.velocity.y)
+		# self.body.angular_velocity = self.max_speed*direction
+		# self.body.velocity = (direction*self.max_speed, self.body.velocity.y)
 
 	def jump(self):
-		print 'jump'
-		if not self.jumping:
-			self.jumping = True
+		print self.grounded
+		if self.grounded:
+			self.grounded = False
 			self.body.apply_impulse_at_local_point(Vec2d(0, 500))
 
 	def update(self):
+		# gravity
+		# print self.body.velocity
+		self.body.each_arbiter(self.ground_collision)
 		self.body.apply_force_at_local_point(self.gravity, (0, 0))
+		# self.body.angular_velocity = 0
 		# self.body.velocity = Vec2d(0, self.body.velocity.y)
+		self.shape.surface_velocity = Vec2d(0, 0)
+
+		# print self.shape.surface_
 		self.target_vx = 0
 		keys = pygame.key.get_pressed()
 		for player_key in self.actions:
@@ -65,18 +93,29 @@ class Player(Sprite):
 		# print self.body.velocity
 		# self.shape.surface_velocity = Vec2d(-self.target_vx, 0)
 		# print self.shape.surface_velocity
-		self.shape.friction = -self.accel/self.gravity.y
+		# print self.shape.surface_velocity
+		
 		# print self.shape.surface_velocity
 
 
 
-class Wall(Sprite):
-	def __init__(self):
-		self.body = pymunk.Body(body_type=pymunk.Body.STATIC)
-		self.shape = pymunk.Poly(self.body, [(200, 200), (200, 100), (400, 100), (400, 200)])
-		# self.body.position = (300, 200)
+class Platform(Sprite):
+	def __init__(self, position, size):
+		self.body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
+		p = Vec2d(position)
+		s = Vec2d(size)
+		self.shape = pymunk.Poly(self.body, [(p.x, p.y), (p.x, p.y-s.y), (p.x+s.x, p.y-s.y), (p.x+s.x, p.y)])
+		self.shape.friction = 1.
 		Sprite.__init__(self, self.body)
 
+class MovingPlatform(Platform):
+
+	# moves in a path relative to its position
+	def __init__(self, position, size, path):
+		Platform.__init__(self, position, size)
+
+	def update(self):
+		print self.body.position
 
 class Game():
 	def __init__(self):
@@ -88,6 +127,10 @@ class Game():
 		self.sprites.add(sprite)
 		self.space.add(sprite.get_bodies())
 
+	# def collision_handler(self, arbiter, space, data):
+	# 	print arbiter.contact_point_set.normal.perpendicular()
+
+	# 	return True
 
 	def run_game(self, size):
 		pygame.init()
@@ -96,10 +139,19 @@ class Game():
 		self.fps = 60
 		self.dt = 1./self.fps
 
-		player = Player()
-		wall = Wall()
+		player = Player((300, 220))
+		walls = []
+		walls.append(Platform((100, 200), (400, 20)))
+		walls.append(Platform((100, 400), (20, 200)))
+		walls += [Platform((500, 200+y), (20, 20)) for y in xrange(0, 200, 20)]
+		walls.append(Platform((220, 220), (20, 20)))
 		self.add_sprite(player)
-		self.add_sprite(wall)
+		for wall in walls:
+			self.add_sprite(wall)
+
+		# player.body.each_arbiter(self.collision_handler)
+		# self.space.add_collision_handler(player.shape.collision_type, wall.shape.collision_type).begin = self.collision_handler
+
 		draw_options = pymunk.pygame_util.DrawOptions(self.screen)
 
 		self.running = True
@@ -113,12 +165,13 @@ class Game():
 					self.running = False
 
 			self.sprites.update()
-			print player.shape.surface_velocity
+			# print player.shape.surface_velocity
+			self.space.debug_draw(draw_options)			
+			# print player.shape.surface_velocity
 
 			self.space.step(self.dt)
 			self.clock.tick(self.fps)
 
-			self.space.debug_draw(draw_options)
 			pygame.display.flip()
 		pygame.display.quit()
 		sys.exit()
