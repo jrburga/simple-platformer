@@ -8,17 +8,20 @@ class Sprite(pygame.sprite.Sprite):
 	def __init__(self, image):
 		#initialize the class with the base class
 		pygame.sprite.Sprite.__init__(self)
-		self.scale = 50
-		self.image = pygame.image.load(image)
-		self.image.convert()
-		self.image = pygame.transform.scale(self.image, [self.scale]*2)
+		self.size = 50
+		try:
+			self.image = pygame.image.load(image)
+			self.image.convert()
+			self.image = pygame.transform.scale(self.image, [self.size]*2)
+		except:
+			self.image = pygame.Surface([self.size]*2)
+			self.image.fill((0, 0, 0))
 		# print self.image
-		self.speed = self.scale
+		self.speed = self.size
 		# self.image.fill((255, 255, 255))
 
 		self.keys = [K_UP, K_DOWN, K_LEFT, K_RIGHT]
 		self.rect = self.image.get_rect()
-
 	def update(self, actions):
 		# if actions: print '----'
 

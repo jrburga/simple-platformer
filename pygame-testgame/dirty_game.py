@@ -4,7 +4,6 @@ from pygame.locals import *
 # A game is an enviroment for which objects in the game can exist
 
 class Sprite(pygame.sprite.DirtySprite):
-	updates = 0
 	def __init__(self, image):
 		#initialize the class with the base class
 		pygame.sprite.DirtySprite.__init__(self)
@@ -59,14 +58,12 @@ class Game():
 		while self.running:
 			self.clock.tick()
 			action = None
-			# print 'getting events'
 			for event in pygame.event.get():
 				if event.type == QUIT:
 					self.running = False
 				if event.type == pygame.KEYDOWN:
 					player.update(event)
 			self.sprites.update(None)
-			player.updates = 0
 			dirty_rects = self.sprites.draw(self.screen)
 			pygame.display.update(dirty_rects)
 
