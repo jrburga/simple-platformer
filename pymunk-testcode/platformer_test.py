@@ -186,12 +186,6 @@ class TransformBox(Platform):
 		self.pymunk2pygame(game.screen)
 
 
-
-
-
-
-		
-
 class MovingPlatform(Platform):
 
 	# moves in a path relative to its position
@@ -199,9 +193,28 @@ class MovingPlatform(Platform):
 	def __init__(self, position, size, path, speed):
 		Platform.__init__(self, position, size)
 		self.body.position
+		print path
 		self.path = [Vec2d(point)+self.body.position for point in path]
+		print self.path
+		print self.body.position
 		self.dest_index = 0
 		self.destination = self.path[self.dest_index]
+		self.speed = speed
+
+	def update(self, game):
+		current = self.body.position
+		distance = current.get_distance(self.destination)
+		print current
+		print self.destination
+		print distance
+		if distance < self.speed:
+			self.dest_index = (self.dest_index + 1)%len(self.path)
+			self.destination = self.path[self.dest_index]
+		if distance > 0:
+			new = current.interpolate_to(self.destination, self.speed / distance)
+			self.body.velocity = (new - current)/game.dt
+		self.pymunk2pygame(game.screen)
+
 
 
 
@@ -247,8 +260,9 @@ class Game():
 		for wall in walls:
 			self.add_sprite(wall)
 
-		# moving_platform = MovingPlatform((300, 250), (60, 10), [(-40, 0), (40, 0)], 1)
-		# self.add_sprite(moving_platform)
+		moving_platform = MovingPlatform((300, 260), (60, 10), [(-40, 0), (40, 0)], 1)
+		self.add_sprite(moving_platform)
+
 		kill_box = KillBox((350, 230), (30, 30))
 		self.add_sprite(kill_box)
 
@@ -294,7 +308,6 @@ class Game():
 					self.running = False
 
 			self.sprites.update(self)
-			# self.space.debug_draw(draw_options)	
 			self.sprites.draw(self.screen)
 					
 
