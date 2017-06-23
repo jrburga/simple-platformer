@@ -193,10 +193,7 @@ class MovingPlatform(Platform):
 	def __init__(self, position, size, path, speed):
 		Platform.__init__(self, position, size)
 		self.body.position
-		print path
 		self.path = [Vec2d(point)+self.body.position for point in path]
-		print self.path
-		print self.body.position
 		self.dest_index = 0
 		self.destination = self.path[self.dest_index]
 		self.speed = speed
@@ -204,9 +201,6 @@ class MovingPlatform(Platform):
 	def update(self, game):
 		current = self.body.position
 		distance = current.get_distance(self.destination)
-		print current
-		print self.destination
-		print distance
 		if distance < self.speed:
 			self.dest_index = (self.dest_index + 1)%len(self.path)
 			self.destination = self.path[self.dest_index]
