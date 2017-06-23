@@ -282,7 +282,6 @@ class Game():
 			return True
 
 		def change_color(arbiter, space, data):
-			print arbiter
 			arbiter.shapes[0].change = True
 			return True
 
