@@ -155,8 +155,8 @@ class ColorBox(Platform):
 	def __init__(self, position, size):
 		Platform.__init__(self, position, size)
 		self.color = 0
-		self.colors = [(0, 0, 0), (0, 255, 0), (0, 0, 255)]
-		self.image.fill((0, 255, 0))
+		self.colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
+		self.image.fill((255, 0, 0))
 		self.shape.collision_type = 4
 		self.shape.change = False
 
@@ -176,14 +176,14 @@ class TransformBox(Platform):
 		self.shape.transform = False
 
 	def update(self, game):
-		self.pymunk2pygame(game.screen)
+		
 		if self.shape.transform:
-			print 'transform'
 			self.dead = True
 			game.remove_sprite(self)
 			new_sprite = self.TransformSprite(self.body.position, self.size)
-
+			new_sprite.update(game)
 			game.add_sprite(new_sprite)
+		self.pymunk2pygame(game.screen)
 
 
 
@@ -212,7 +212,6 @@ class Game():
 		self.sprites = pygame.sprite.Group()
 
 	def add_sprite(self, sprite):
-		print 'adding sprite', sprite
 		self.sprites.add(sprite)
 		self.space.add(sprite.get_bodies())
 
@@ -275,6 +274,7 @@ class Game():
 			return True
 
 		def change_color(arbiter, space, data):
+			print arbiter
 			arbiter.shapes[0].change = True
 			return True
 
