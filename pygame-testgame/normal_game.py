@@ -1,5 +1,6 @@
 import pygame
 from pygame.locals import *
+from sprite_sheet import SpriteSheet
 
 # A game is an enviroment for which objects in the game can exist
 
@@ -10,7 +11,8 @@ class Sprite(pygame.sprite.Sprite):
 		pygame.sprite.Sprite.__init__(self)
 		self.size = 50
 		try:
-			self.image = pygame.image.load(image)
+			self.ss = SpriteSheet(image)
+			self.image = self.ss.image_at((0, 0, 32, 32), (255, 0, 255))
 			self.image.convert()
 			self.image = pygame.transform.scale(self.image, [self.size]*2)
 		except:
@@ -49,9 +51,9 @@ class Game():
 		self.screen = pygame.display.set_mode(screen_size)
 
 		self.background = pygame.Surface(screen_size)
-		self.background.fill((255, 255, 255))
+		self.background.fill((0, 0, 0))
 
-		player = Sprite('images/apple.png')
+		player = Sprite('images/goomba_sheet-1.png')
 
 		self.sprites = pygame.sprite.Group()
 		self.sprites.add(player)
