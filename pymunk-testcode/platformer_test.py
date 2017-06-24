@@ -8,36 +8,10 @@ import pymunk
 from pymunk.vec2d import Vec2d
 import pymunk.pygame_util
 
-from collections import defaultdict
-
 from Graphics import SpriteSheets
 
-
-class Sprite(pygame.sprite.Sprite):
-
-	def __init__(self, position, size):
-		pygame.sprite.Sprite.__init__(self)
-		self.image = pygame.Surface(size)
-		self.image.fill((0, 0, 0))
-		self.rect = self.image.get_rect()
-		self.dead = False
-		self.size = size
-	def get_bodies(self):
-		return [self.body, self.shape]
-
-	def active_update(self, game):
-		pass
-
-	def passive_update(self, game):
-		pass
-
-	def update(self, game):
-		self.active_update(game)
-		self.passive_update(game)
-		self.pymunk2pygame(game.screen)
-
-	def pymunk2pygame(self, screen):
-		self.rect.x, self.rect.y = pymunk.pygame_util.to_pygame(self.body.position, screen)
+from Basics import Game
+from Basics import Sprite
 
 
 class InteractBox(Sprite):
@@ -334,161 +308,88 @@ class PhysicsBox(Platform):
 		self.image.fill((100, 100, 100))
 		self.shape.collision_type = 5
 
-class Game():
-	def __init__(self):
-		self.space = pymunk.Space()
-		self.space.gravity = (0, 0)
-		self.sprites = defaultdict(lambda: pygame.sprite.Group())
-
-	def update(self):
-		for layer in self.sprites:
-			self.sprites[layer].update(self)
-
-	def draw(self):
-		for layer in sorted(self.sprites.keys(), reverse=True):
-			self.sprites[layer].draw(self.screen)
-
-
-	def add_sprite(self, sprite, layer=0):
-
-		self.sprites[layer].add(sprite)
-		self.space.add(sprite.get_bodies())
-
-
-	def remove_sprite(self, sprite):
-		for layer in self.sprites:
-			if self.sprites[layer].has(sprite):
-				self.sprites[layer].remove(sprite)
-		self.space.remove(sprite.get_bodies())
-
-	def add_collision_handler(self, sprite1, sprite2, collision_handler, collision_type='begin'):
-		type1 = sprite1.shape.collision_type
-		type2 = sprite2.shape.collision_type
-		if collision_type == 'begin':
-			self.space.add_collision_handler(type1, type2).begin = collision_handler
-		elif collision_type == 'separate':
-			self.space.add_collision_handler(type1, type2).separate = collision_handler
-
-	def run_game(self, size):
-
-
-
-		pygame.init()
-
-		# initialize 
-		self.screen = pygame.display.set_mode(size)
-		self.clock = pygame.time.Clock()
-		self.fps = 60
-		self.dt = 1./self.fps
-
-		# add objects to the game world
-		# player = PreciseJumper((300, 220), (5, 5))
-		player = Player((300, 220), (5, 5))
-		self.add_sprite(player)
-
-
-		walls = []
-		walls.append(Platform((100, 200), (400, 20)))
-		walls.append(Platform((100, 400), (180, 20)))
-		walls.append(Platform((320, 400), (200, 20)))
-		walls.append(Platform((100, 500), (20, 300)))
-		walls.append(Platform((100, 500), (400, 20)))
-		walls += [Platform((500, 200+y), (20, 20)) for y in xrange(0, 200, 20)]
-		# walls.append(Platform((200, 220), (40, 20)))
-		
-		for wall in walls:
-			self.add_sprite(wall)
-
-		pass_through_platform = PassThrough((280, 400), (40, 20))
-		self.add_sprite(pass_through_platform, 1)
-
-		pass_through_platform2 = PassThrough((400, 260), (40, 60))
-		self.add_sprite(pass_through_platform2, 1)
-
-		moving_platforms = [
-			# MovingPlatform((300, 260), (60, 10), [(-40, 0), (40, 0)], 1),
-			MovingPlatform((300, 320), (60, 10), [(60, 0), (-60, 0), (0, -30)], 50),	
-		]
-		for moving_platform in moving_platforms:
-			self.add_sprite(moving_platform, 1)
-
-		kill_box = KillBox((400, 490), (20, 90))
-		self.add_sprite(kill_box, 1)
-
-		color_box = ColorBox((200, 230), (30, 30))
-		self.add_sprite(color_box, 1)
-
-		transform_box = TransformBox((120, 230), (30, 30), Platform)
-		self.add_sprite(transform_box, 1)
-
-		physics_box = PhysicsBox((470, 230), (30, 30))
-		self.add_sprite(physics_box, 1)
-
-		box = InteractBox((200, 440), (30, 30))
-		self.add_sprite(box)
-
-		# set up debug draw mode
-		# actually displaying real graphics will take some more effort
-		# because the (0, 0) point is in the bottom left (unlike the pygame screen)
-		draw_options = pymunk.pygame_util.DrawOptions(self.screen)
-
-		self.running = True
-
-		# create a white background to refresh the screen
-		self.background = pygame.Surface(size)
-		self.background.fill(Color('white'))
-
-		def kill_sprite(arbiter, space, data):
-			arbiter.shapes[0].kill = True
-			return True
-
-		def change_color(arbiter, space, data):
-			arbiter.shapes[0].change = True
-			return True
-
-		def transform_sprite(arbiter, space, data):
-			arbiter.shapes[0].transform = True
-			return True
-
-		def change_physics(arbiter, space, data):
-			arbiter.shapes[0].body.mass = 2
-			return True
-
-		def pass_through(arbiter, space, data):
-			N = arbiter.contact_point_set.normal
-			shape1, shape2 = arbiter.shapes
-			if shape2.body.position.y <= shape1.body.position.y and abs(N.x/N.y) < shape1.friction:
-				return True
-			return False
-
-		self.add_collision_handler(kill_box, box, kill_sprite)
-		self.add_collision_handler(color_box, player, change_color)
-		self.add_collision_handler(transform_box, player, transform_sprite)
-		self.add_collision_handler(player, physics_box, change_physics)
-		self.add_collision_handler(player, pass_through_platform, pass_through)
-		self.add_collision_handler(box, pass_through_platform, pass_through)
-
-
-		while self.running:
-			# refresh the screen
-			self.screen.blit(self.background, (0, 0))
-			for event in pygame.event.get():
-				if event.type == QUIT:
-					self.running = False
-
-			self.update()
-			self.draw()
-			
-			# self.space.debug_draw(draw_options)
-
-			self.space.step(self.dt)
-			self.clock.tick(self.fps)
-
-			pygame.display.flip()
-		pygame.display.quit()
-		sys.exit()
-
-
 if __name__ == '__main__':
-	game = Game()
-	game.run_game((600, 600))
+	game = Game((600, 600))
+	# add objects to the game world
+	# player = PreciseJumper((300, 220), (5, 5))
+	player = Player((300, 220), (5, 5))
+	game.add_sprite(player)
+
+
+	walls = []
+	walls.append(Platform((100, 200), (400, 20)))
+	walls.append(Platform((100, 400), (180, 20)))
+	walls.append(Platform((320, 400), (200, 20)))
+	walls.append(Platform((100, 500), (20, 300)))
+	walls.append(Platform((100, 500), (400, 20)))
+	walls += [Platform((500, 200+y), (20, 20)) for y in xrange(0, 200, 20)]
+	# walls.append(Platform((200, 220), (40, 20)))
+	
+	for wall in walls:
+		game.add_sprite(wall)
+
+	pass_through_platform = PassThrough((280, 400), (40, 20))
+	game.add_sprite(pass_through_platform, 1)
+
+	pass_through_platform2 = PassThrough((400, 260), (40, 60))
+	game.add_sprite(pass_through_platform2, 1)
+
+	moving_platforms = [
+		# MovingPlatform((300, 260), (60, 10), [(-40, 0), (40, 0)], 1),
+		MovingPlatform((300, 320), (60, 10), [(60, 0), (-60, 0), (0, -30)], 50),	
+	]
+	for moving_platform in moving_platforms:
+		game.add_sprite(moving_platform, 1)
+
+	kill_box = KillBox((400, 490), (20, 90))
+	game.add_sprite(kill_box, 1)
+
+	color_box = ColorBox((200, 230), (30, 30))
+	game.add_sprite(color_box, 1)
+
+	transform_box = TransformBox((120, 230), (30, 30), Platform)
+	game.add_sprite(transform_box, 1)
+
+	physics_box = PhysicsBox((470, 230), (30, 30))
+	game.add_sprite(physics_box, 1)
+
+	box = InteractBox((200, 440), (30, 30))
+	game.add_sprite(box)
+
+	# set up debug draw mode
+	# actually displaying real graphics will take some more effort
+	# because the (0, 0) point is in the bottom left (unlike the pygame screen)
+
+	game.running = True
+	def kill_sprite(arbiter, space, data):
+		arbiter.shapes[0].kill = True
+		return True
+
+	def change_color(arbiter, space, data):
+		arbiter.shapes[0].change = True
+		return True
+
+	def transform_sprite(arbiter, space, data):
+		arbiter.shapes[0].transform = True
+		return True
+
+	def change_physics(arbiter, space, data):
+		arbiter.shapes[0].body.mass = 2
+		return True
+
+	def pass_through(arbiter, space, data):
+		N = arbiter.contact_point_set.normal
+		shape1, shape2 = arbiter.shapes
+		if shape2.body.position.y <= shape1.body.position.y and abs(N.x/N.y) < shape1.friction:
+			return True
+		return False
+
+	game.add_collision_handler(kill_box, box, kill_sprite)
+	game.add_collision_handler(color_box, player, change_color)
+	game.add_collision_handler(transform_box, player, transform_sprite)
+	game.add_collision_handler(player, physics_box, change_physics)
+	game.add_collision_handler(player, pass_through_platform, pass_through)
+	game.add_collision_handler(box, pass_through_platform, pass_through)
+
+
+	game.run_game()

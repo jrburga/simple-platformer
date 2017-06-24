@@ -6,42 +6,20 @@ import pymunk
 from pymunk.vec2d import Vec2d
 import pymunk.pygame_util
 import random 
+
+from Basics import Sprite
+from Basics import Game
 """
 TODO
 - Bullets (key_press --> creation --> collision w/ asteroid --> destroy asteroid & create 2 a fraction of the size)
     * bullets shouldn't wrap around / should have a timer (check the game)
 """
 
-class Sprite(pygame.sprite.Sprite):
-
-	def __init__(self, position, size):
-		pygame.sprite.Sprite.__init__(self)
-		self.image = pygame.Surface(size)
-		self.image.fill((0, 0, 0))
-		self.rect = self.image.get_rect()
-		self.dead = False
-		self.size = size
-	def get_bodies(self):
-		return [self.body, self.shape]
-
-	def active_update(self, game):
-		pass
-
-	def passive_update(self, game):
-		pass
-
-	def update(self, game):
-		self.active_update(game)
-		self.passive_update(game)
-		self.pymunk2pygame(game.screen)
-
-	def pymunk2pygame(self, screen):
-		self.rect.x, self.rect.y = pymunk.pygame_util.to_pygame(self.body.position, screen)
-
 
 class WrapSprite(Sprite):
 	radius = 0
 
+	# Your new wrap around function.
 	def passive_update(self, game):
 		screen_width, screen_height = game.screen.get_size()
 		x, y = self.body.position.x, self.body.position.y
@@ -110,99 +88,25 @@ class Asteroid(WrapSprite):
 		self.body.velocity = velocity
 		self.body.position = position
 
-class Game():
-	def __init__(self):
-		self.space = pymunk.Space()
-		self.space.gravity = (0, 0)
-		self.sprites = pygame.sprite.Group()
-
-	def add_sprite(self, sprite):
-		self.sprites.add(sprite)
-		self.space.add(sprite.get_bodies())
-
-	# This is broken and causing the sprites to not move unless they a velocity that causes integer movements through the screen
-	# def wrap_around(self,sprites,screen_size):
-	# 	"""
-	# 	Make it so sprites that go off screen teleport to the other side.
-	# 	"""
-	# 	screen_width = screen_size[0]
-	# 	screen_height = screen_size[1]
-	# 	for sprite in self.sprites:
-	# 		x,y = pymunk.pygame_util.to_pygame(sprite.body.position, self.background)
-	# 		if x < 0:
-	# 			x = screen_width - 1
-	# 		elif x > screen_width:
-	# 			x = 1
-			
-	# 		if y < 0:
-	# 			y = screen_height - y
-	# 		elif y > screen_height:
-	# 			y = 1
-
-	# 		sprite.body.position = pymunk.pygame_util.from_pygame((x,y), self.background)
-
-	def add_collision_handler(self, sprite1, sprite2, collision_handler, collision_type='begin'):
-		type1 = sprite1.shape.collision_type
-		type2 = sprite2.shape.collision_type
-		if collision_type == 'begin':
-			self.space.add_collision_handler(type1, type2).begin = collision_handler
-		elif collision_type == 'separate':
-			self.space.add_collision_handler(type1, type2).separate = collision_handler
-
-	def run_game(self, size):
-		
-		pygame.init()
-
-		### initialize display settings ###
-		self.screen = pygame.display.set_mode(size)
-		self.clock = pygame.time.Clock()
-		self.fps = 60
-		self.dt = 1./self.fps
-
-
-		### Add objects to the game world ###
-
-		# add player to the game world
-		player = Player((300, 220))
-		player.body.filter = pymunk.ShapeFilter(categories=1)
-		self.add_sprite(player)
-
-		# add 10 asteroids
-		for _ in range(5):
-			random_position = random.randrange(0,size[0]), random.randrange(0,size[1])
-			random_velocity = random.randrange(-100,100), random.randrange(-100,100)
-			random_size = [random.randrange(20,60)]*2
-			asteroid = Asteroid(random_position, random_size, random_velocity)
-			asteroid.body.filter = pymunk.ShapeFilter(categories=2)
-			self.add_sprite(asteroid)
-
-		# add player-asteroid collision handler (nothing happens)
-		self.add_collision_handler(player, asteroid, lambda x, y, z: False)
-
-
-		### Set up debug draw mode ###
-
-		draw_options = pymunk.pygame_util.DrawOptions(self.screen)
-		self.background = pygame.Surface(size)
-		self.background.fill(Color('white'))
-
-		self.running = True
-		while self.running:
-			# refresh the screen
-			self.screen.blit(self.background, (0, 0))
-			for event in pygame.event.get():
-				if event.type == QUIT:
-					self.running = False
-			self.sprites.update(self)
-			# self.wrap_around(self.sprites,size)
-			self.space.debug_draw(draw_options)			
-			self.space.step(self.dt)
-			self.clock.tick(self.fps)
-			pygame.display.flip()
-		pygame.display.quit()
-		sys.exit()
-
 
 if __name__ == '__main__':
-	game = Game()
-	game.run_game((600, 600))
+	game = Game((600, 600), debug_mode = True)
+	### Add objects to the game world ###
+
+	# add player to the game world
+	player = Player((300, 220))
+	player.body.filter = pymunk.ShapeFilter(categories=1)
+	game.add_sprite(player)
+
+	# add 10 asteroids
+	for _ in range(5):
+		random_position = random.randrange(0, game.size[0]), random.randrange(0, game.size[1])
+		random_velocity = random.randrange(-100,100), random.randrange(-100,100)
+		random_size = [random.randrange(20,60)]*2
+		asteroid = Asteroid(random_position, random_size, random_velocity)
+		asteroid.body.filter = pymunk.ShapeFilter(categories=2)
+		game.add_sprite(asteroid)
+
+	# add player-asteroid collision handler (nothing happens)
+	game.add_collision_handler(player, asteroid, lambda x, y, z: False)
+	game.run_game()
