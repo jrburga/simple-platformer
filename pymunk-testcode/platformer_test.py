@@ -29,6 +29,7 @@ class Sprite(pygame.sprite.Sprite):
 		self.pymunk2pygame(game.screen)
 
 	def pymunk2pygame(self, screen):
+		# print self.body.position
 		self.rect.x, self.rect.y = pymunk.pygame_util.to_pygame(self.body.position, screen)
 
 class Player(Sprite):
@@ -68,6 +69,8 @@ class Player(Sprite):
 		self.shape.friction = -self.accel/self.gravity.y
 		self.grounded = False
 		self.jump_impulse = 800
+		self.air_speed_max = 50
+		self.air_speed = 50
 
 		self.targetvx = 0
 		self.direction = 1
@@ -86,6 +89,7 @@ class Player(Sprite):
 					if (N.y != 0 and abs(N.x/N.y) < self.shape.friction):
 						self.grounded = True
 						self.body.passing = False
+						self.air_speed = self.air_speed_max
 				return
 		
 
@@ -94,6 +98,9 @@ class Player(Sprite):
 		if self.grounded:
 			self.target_vx += direction*self.max_speed
 			self.image = self.animation.next()
+		else:
+			self.body.apply_impulse_at_local_point(Vec2d(direction*self.air_speed, 0))
+			self.air_speed *= .9
 		
 
 	def jump(self):
@@ -104,6 +111,7 @@ class Player(Sprite):
 			self.body.apply_impulse_at_local_point(Vec2d(0, self.jump_impulse))
 
 	def passive_update(self):
+		self.body.apply_force_at_local_point(self.gravity, (0, 0))
 		self.body.each_arbiter(self.ground_collision)
 
 	def animate(self):
@@ -204,6 +212,14 @@ class Platform(Sprite):
 		self.shape.friction = 1.
 		self.shape.collision_type = 2
 
+class Box(Platform):
+
+	def __init__(self, position, size):
+		Platform.__init__(self, position, size)
+		self.body = pymunk.Body(body_type=pymunk.Body.DYNAMIC)
+		# self.image.fill((100, 100, 0))
+
+
 class PassThrough(Platform):
 	def __init__(self, position, size):
 		Platform.__init__(self, position, size)
@@ -257,12 +273,12 @@ class TransformBox(Platform):
 		self.pymunk2pygame(game.screen)
 
 
-class MovingPlatform(Platform):
+class MovingPlatform(PassThrough):
 
 	# moves in a path relative to its position
 	# where a path is a list of points
 	def __init__(self, position, size, path, speed):
-		Platform.__init__(self, position, size)
+		PassThrough.__init__(self, position, size)
 		self.body.position
 		self.path = [Vec2d(point)+self.body.position for point in path]
 		self.dest_index = 0
@@ -348,8 +364,8 @@ class Game():
 		self.dt = 1./self.fps
 
 		# add objects to the game world
-		player = PreciseJumper((300, 220), (5, 5))
-		# player = Player((300, 220), (5, 5))
+		# player = PreciseJumper((300, 220), (5, 5))
+		player = Player((300, 220), (5, 5))
 		self.add_sprite(player)
 
 
@@ -389,6 +405,9 @@ class Game():
 		physics_box = PhysicsBox((470, 230), (30, 30))
 		self.add_sprite(physics_box, 1)
 
+		# box = Box((600, 230), (10, 10))
+		# self.add_sprite(box)
+
 		# set up debug draw mode
 		# actually displaying real graphics will take some more effort
 		# because the (0, 0) point is in the bottom left (unlike the pygame screen)
@@ -422,7 +441,7 @@ class Game():
 			# print N.y
 			# print shape1.body.position.y, shape2.body.position.y
 			# print shape1.body.position.y >= shape2.body.position.y
-			if shape2.body.position.y <= shape1.body.position.y:
+			if shape2.body.position.y <= shape1.body.position.y and abs(N.x/N.y) < shape1.friction:
 				return True
 			return False
 
