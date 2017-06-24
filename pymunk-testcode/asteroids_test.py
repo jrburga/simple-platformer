@@ -55,9 +55,9 @@ class Player(Sprite):
 		# up key applies forward force
 		if K_UP in buttons_pressed and not K_DOWN in buttons_pressed:
 			# thrust = Vec2d((math.cos(self.body.angle % (math.pi)) ,math.sin(self.body.angle % (math.pi)))) *  self.forward_thrust
-			thrust = radians_to_vector(self.body.angle) *  self.forward_thrust
+			thrust = Vec2d(1, 0) *  self.forward_thrust
 			print thrust
-			self.body.apply_force_at_local_point(thrust, (0,0))
+			self.body.apply_impulse_at_local_point(thrust, (0,0))
 
 		# down key decreases velocity at flat rate
 		elif K_DOWN in buttons_pressed and not K_UP in buttons_pressed:
