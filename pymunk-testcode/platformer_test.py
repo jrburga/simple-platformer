@@ -25,12 +25,40 @@ class Sprite(pygame.sprite.Sprite):
 	def get_bodies(self):
 		return [self.body, self.shape]
 
+	def active_update(self, game):
+		pass
+
+	def passive_update(self, game):
+		pass
+
 	def update(self, game):
+		self.active_update(game)
+		self.passive_update(game)
 		self.pymunk2pygame(game.screen)
 
 	def pymunk2pygame(self, screen):
-		# print self.body.position
 		self.rect.x, self.rect.y = pymunk.pygame_util.to_pygame(self.body.position, screen)
+
+
+class InteractBox(Sprite):
+	def __init__(self, position, size):
+		Sprite.__init__(self, position, size)
+		# moment = pymunk.moment_for_poly(5, map(lambda p: Vec2d(p), [(0, 0), (0, -size.y), (size.x, -size.y), (size.x, 0)]))
+		self.body = pymunk.Body(body_type=pymunk.Body.DYNAMIC)
+		self.image.fill((200, 100, 50))
+		self.body.mass = 5
+		self.body.moment = pymunk.inf
+		self.body.position = Vec2d(position)
+		size = Vec2d(size)
+		self.shape = pymunk.Poly(self.body, [(0, 0), (0, -size.y), (size.x, -size.y), (size.x, 0)], radius=1)
+		self.shape.friction = 1.0
+		self.shape.elasticity = 1
+		self.gravity = Vec2d(0, -1000)
+		self.shape.collision_type = 10
+
+	def passive_update(self, game):
+		self.body.apply_force_at_local_point(self.gravity, (0, 0))
+
 
 class Player(Sprite):
 	def __init__(self, position, size):
@@ -69,8 +97,8 @@ class Player(Sprite):
 		self.shape.friction = -self.accel/self.gravity.y
 		self.grounded = False
 		self.jump_impulse = 800
-		self.air_speed_max = 50
-		self.air_speed = 50
+		self.air_speed_max = 10000
+		self.air_speed = self.air_speed_max
 
 		self.targetvx = 0
 		self.direction = 1
@@ -99,8 +127,10 @@ class Player(Sprite):
 			self.target_vx += direction*self.max_speed
 			self.image = self.animation.next()
 		else:
-			self.body.apply_impulse_at_local_point(Vec2d(direction*self.air_speed, 0))
-			self.air_speed *= .9
+			nv = self.body.velocity.x+direction*self.air_speed
+			if abs(nv) <= self.air_speed_max or abs(nv) <= self.body.velocity.x:
+				self.body.apply_force_at_local_point(Vec2d(direction*self.air_speed, 0), (0, 0))
+				# self.air_speed *= .5
 		
 
 	def jump(self):
@@ -143,8 +173,6 @@ class Player(Sprite):
 		self.passive_update()
 		self.animate()
 		self.active_update()
-		# self.shape.surface_velocity = Vec2d(0, 0)
-
 		self.pymunk2pygame(game.screen)
 		self.rect.x -= self.size[0]/2
 		self.rect.y -= self.size[1]/2+16
@@ -212,13 +240,6 @@ class Platform(Sprite):
 		self.shape.friction = 1.
 		self.shape.collision_type = 2
 
-class Box(Platform):
-
-	def __init__(self, position, size):
-		Platform.__init__(self, position, size)
-		self.body = pymunk.Body(body_type=pymunk.Body.DYNAMIC)
-		# self.image.fill((100, 100, 0))
-
 
 class PassThrough(Platform):
 	def __init__(self, position, size):
@@ -230,6 +251,7 @@ class PassThrough(Platform):
 class KillBox(Platform):
 	def __init__(self, position, size):
 		Platform.__init__(self, position, size)
+		self.image.fill((50, 100, 200))
 		self.shape.kill = False
 		self.shape.collision_type = 3
 	def update(self, game):
@@ -296,7 +318,7 @@ class MovingPlatform(PassThrough):
 		return self.path[self.dest_index]
 
 
-	def update(self, game):
+	def passive_update(self, game):
 		current = self.body.position
 		distance = current.get_distance(self.destination)
 
@@ -305,16 +327,12 @@ class MovingPlatform(PassThrough):
 			self.destination = self.next_destination()
 			self.set_direction()
 		self.body.velocity = self.speed*self.direction
-		self.pymunk2pygame(game.screen)
 
 class PhysicsBox(Platform):
 	def __init__(self, position, size):
 		Platform.__init__(self, position, size)
 		self.image.fill((100, 100, 100))
 		self.shape.collision_type = 5
-
-
-
 
 class Game():
 	def __init__(self):
@@ -374,7 +392,8 @@ class Game():
 		walls.append(Platform((100, 400), (180, 20)))
 		walls.append(Platform((320, 400), (200, 20)))
 		walls.append(Platform((100, 500), (20, 300)))
-		walls += [Platform((500, 200+y), (20, 20)) for y in xrange(0, 320, 20)]
+		walls.append(Platform((100, 500), (400, 20)))
+		walls += [Platform((500, 200+y), (20, 20)) for y in xrange(0, 200, 20)]
 		# walls.append(Platform((200, 220), (40, 20)))
 		
 		for wall in walls:
@@ -393,7 +412,7 @@ class Game():
 		for moving_platform in moving_platforms:
 			self.add_sprite(moving_platform, 1)
 
-		kill_box = KillBox((350, 230), (30, 30))
+		kill_box = KillBox((400, 490), (20, 90))
 		self.add_sprite(kill_box, 1)
 
 		color_box = ColorBox((200, 230), (30, 30))
@@ -405,8 +424,8 @@ class Game():
 		physics_box = PhysicsBox((470, 230), (30, 30))
 		self.add_sprite(physics_box, 1)
 
-		# box = Box((600, 230), (10, 10))
-		# self.add_sprite(box)
+		box = InteractBox((200, 440), (30, 30))
+		self.add_sprite(box)
 
 		# set up debug draw mode
 		# actually displaying real graphics will take some more effort
@@ -438,18 +457,16 @@ class Game():
 		def pass_through(arbiter, space, data):
 			N = arbiter.contact_point_set.normal
 			shape1, shape2 = arbiter.shapes
-			# print N.y
-			# print shape1.body.position.y, shape2.body.position.y
-			# print shape1.body.position.y >= shape2.body.position.y
 			if shape2.body.position.y <= shape1.body.position.y and abs(N.x/N.y) < shape1.friction:
 				return True
 			return False
 
-		self.add_collision_handler(kill_box, player, kill_sprite, 'separate')
+		self.add_collision_handler(kill_box, box, kill_sprite)
 		self.add_collision_handler(color_box, player, change_color)
 		self.add_collision_handler(transform_box, player, transform_sprite)
 		self.add_collision_handler(player, physics_box, change_physics)
 		self.add_collision_handler(player, pass_through_platform, pass_through)
+		self.add_collision_handler(box, pass_through_platform, pass_through)
 
 
 		while self.running:
