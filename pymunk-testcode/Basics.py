@@ -37,9 +37,12 @@ class Sprite(pygame.sprite.Sprite):
 	# Used for general updating. Maybe don't update this, unless you're doing graphics things.
 	# I haven't done anything better to deal with that
 	def update(self, game):
-		self.active_update(game)
 		self.passive_update(game)
+		self.active_update(game)
 		self.pymunk2pygame(game.screen)
+		if self.dead:
+			game.space.remove(self.body, self.shape)
+			self.kill()
 
 	def pymunk2pygame(self, screen):
 		self.rect.x, self.rect.y = pymunk.pygame_util.to_pygame(self.body.position, screen)
@@ -67,9 +70,6 @@ class Game():
 	def update(self):
 		self.update_keypress_events()
 		for layer in self.sprites:
-			for sprite in self.sprites[layer].sprites():
-				if sprite.dead:
-					self.remove_sprite(sprite)
 			self.sprites[layer].update(self)
 
 	def draw(self):
@@ -85,7 +85,6 @@ class Game():
 
 	def remove_sprite(self, sprite):
 		# for shape in sprite.get_bodies():
-
 		self.space.remove(sprite.body)
 		for layer in self.sprites:
 			if self.sprites[layer].has(sprite):
@@ -111,7 +110,7 @@ class Game():
 				keys_held.append(key)
 			elif key in old_keys_pressed and not key in new_keys_pressed:
 				keys_up.append(key)
-		self.keypress_events = self.keypress_events = {"KEY_UP":keys_up,"KEY_DOWN":keys_down,"KEY_HELD":keys_held}
+		self.keypress_events = {"KEY_UP":keys_up,"KEY_DOWN":keys_down,"KEY_HELD":keys_held}
 		self.last_keys_pressed = new_keys_pressed
 		
 	def binary_list_to_int_list(self,binary_list):

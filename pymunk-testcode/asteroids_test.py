@@ -62,7 +62,8 @@ class Player(WrapSprite):
 	"""
 	def passive_update(self,game):
 		super(Player,self).passive_update(game)
-		if self.shape.game_over == True: game.running = False
+		if self.shape.game_over == True: 
+			game.running = False
 
 	"""
  	Applies player actions based on keyboard ipnut
@@ -109,7 +110,7 @@ class Asteroid(WrapSprite):
 		# destroy asteroid if "hit by bullet" flag was triggered
 		if self.shape.kill == True: 
 			self.dead = True
-			game.remove_sprite(self)
+			# game.space.remove(self.body)
 
 			# spawn two smaller asteroids where the original was (up to a point)
 			if self.size[0] > 20:
@@ -139,7 +140,7 @@ class Bullet(Sprite):
 	def passive_update(self,game): 
 		if self.shape.kill == True: 
 			self.dead = True
-			game.remove_sprite(self)
+			# game.space.remove(self.body)
 
 """
 Collision handlers
@@ -183,7 +184,7 @@ if __name__ == '__main__':
 	"""
 	Collisions we want to ignore
 	"""
-	game.add_collision_handler(player, asteroid, lambda x, y, z: False)
+	# game.add_collision_handler(player, asteroid, lambda x, y, z: False)
 	game.add_collision_handler(asteroid, asteroid, lambda x, y, z: False)
 	game.add_collision_handler(player,  dummy_bullet, lambda x, y, z: False)
 	game.add_collision_handler(dummy_bullet, dummy_bullet, lambda x, y, z: False)

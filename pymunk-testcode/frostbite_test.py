@@ -29,7 +29,6 @@ class AppearingPlatforms():
 def kill_sprite(arbiter, space, data):
 	if pass_through(arbiter, space, data):
 		arbiter.shapes[0].body.kill = True
-		space.remove(arbiter.shapes[0])
 		return True
 	return False
 

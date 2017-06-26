@@ -167,11 +167,8 @@ class Player(Sprite):
 	def update(self, game):
 
 		# check if object is properly "grounded"
-		
-		self.passive_update(game)
 		self.animate()
-		self.active_update(game)
-		self.pymunk2pygame(game.screen)
+		super(Player, self).update(game)		
 		self.rect.x -= self.size[0]/2
 		self.rect.y -= self.size[1]/2+16
 
@@ -249,13 +246,12 @@ class KillBox(Platform):
 	def __init__(self, position, size):
 		Platform.__init__(self, position, size)
 		self.image.fill((50, 100, 200))
-		self.shape.kill = False
+		self.body.kill = False
 		self.shape.collision_type = 3
-	def update(self, game):
-		self.pymunk2pygame(game.screen)
-		if self.shape.kill:
+	def passive_update(self, game):
+		if self.body.kill == True:
+			print 'dead'
 			self.dead = True
-			game.remove_sprite(self)
 
 class ColorBox(Platform):
 	def __init__(self, position, size):
@@ -333,7 +329,6 @@ class PhysicsBox(Platform):
 
 def kill_sprite(arbiter, space, data):
 	arbiter.shapes[0].body.kill = True
-	space.remove(arbiter.shapes[0])
 	return True
 
 def change_color(arbiter, space, data):
@@ -361,7 +356,7 @@ def pass_through(arbiter, space, data):
 	return False
 
 if __name__ == '__main__':
-	game = Game((600, 600))
+	game = Game((600, 600), debug_mode=False)
 	# add objects to the game world
 	# player = PreciseJumper((300, 220), (5, 5))
 	player = Player((300, 220), (5, 5))
@@ -419,7 +414,7 @@ if __name__ == '__main__':
 	game.add_collision_handler(transform_box, player, transform_sprite)
 	game.add_collision_handler(player, physics_box, change_physics)
 	game.add_collision_handler(player, pass_through_platform, pass_through)
-	game.add_collision_handler(box, pass_through_platform, pass_through)
+	# game.add_collision_handler(box, pass_through_platform, pass_through)
 
 
 	game.run_game()
