@@ -65,7 +65,6 @@ class Game():
 
 	def update(self):
 		self.update_keypress_events()
-		# print self.keypress_events
 		for layer in self.sprites:
 			self.sprites[layer].update(self)
 
@@ -97,9 +96,6 @@ class Game():
 	def update_keypress_events(self):
 		old_keys_pressed = self.last_keys_pressed
 		new_keys_pressed = self.binary_list_to_int_list(pygame.key.get_pressed())
-		# print old_keys_pressed
-		# print new_keys_pressed
-		# print ""
 		keys_down, keys_held, keys_up= [], [], []
 		for key in range(323):
 			if not key in old_keys_pressed and key in new_keys_pressed: 
@@ -110,7 +106,6 @@ class Game():
 				keys_up.append(key)
 		self.keypress_events = self.keypress_events = {"KEY_UP":keys_up,"KEY_DOWN":keys_down,"KEY_HELD":keys_held}
 		self.last_keys_pressed = new_keys_pressed
-		print self.keypress_events
 		
 	def binary_list_to_int_list(self,binary_list):
 		int_list = []
