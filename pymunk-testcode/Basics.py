@@ -21,6 +21,7 @@ class Sprite(pygame.sprite.Sprite):
 		self.rect = self.image.get_rect()
 		self.dead = False
 		self.size = size
+	
 	def get_bodies(self):
 		return [self.body, self.shape]
 
@@ -42,6 +43,7 @@ class Sprite(pygame.sprite.Sprite):
 	def pymunk2pygame(self, screen):
 		self.rect.x, self.rect.y = pymunk.pygame_util.to_pygame(self.body.position, screen)
 
+
 class Game():
 	def __init__(self, size, debug_mode=False):
 		pygame.init()
@@ -58,7 +60,12 @@ class Game():
 
 		self.running = False
 
+		self.keypress_events = {"KEY_UP":[],"KEY_DOWN":[],"KEY_HELD":[]}
+		self.last_keys_pressed = []
+
 	def update(self):
+		self.update_keypress_events()
+		# print self.keypress_events
 		for layer in self.sprites:
 			self.sprites[layer].update(self)
 
@@ -87,6 +94,31 @@ class Game():
 		elif collision_type == 'separate':
 			self.space.add_collision_handler(type1, type2).separate = collision_handler
 
+	def update_keypress_events(self):
+		old_keys_pressed = self.last_keys_pressed
+		new_keys_pressed = self.binary_list_to_int_list(pygame.key.get_pressed())
+		# print old_keys_pressed
+		# print new_keys_pressed
+		# print ""
+		keys_down, keys_held, keys_up= [], [], []
+		for key in range(323):
+			if not key in old_keys_pressed and key in new_keys_pressed: 
+				keys_down.append(key)
+			elif key in old_keys_pressed and key in new_keys_pressed: 
+				keys_held.append(key)
+			elif key in old_keys_pressed and not key in new_keys_pressed:
+				keys_up.append(key)
+		self.keypress_events = self.keypress_events = {"KEY_UP":keys_up,"KEY_DOWN":keys_down,"KEY_HELD":keys_held}
+		self.last_keys_pressed = new_keys_pressed
+		print self.keypress_events
+		
+	def binary_list_to_int_list(self,binary_list):
+		int_list = []
+		for index,value in enumerate(binary_list):
+			if binary_list[index]: int_list.append(index)
+		return int_list
+		
+		
 	def run_game(self):
 		self.clock = pygame.time.Clock()
 		self.fps = 60
