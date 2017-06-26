@@ -17,7 +17,8 @@ class Sprite(pygame.sprite.Sprite):
 	def __init__(self, position, size):
 		pygame.sprite.Sprite.__init__(self)
 		self.image = pygame.Surface(size)
-		self.image.fill((0, 0, 0))
+		self.color = (0, 0, 0)
+		self.image.fill(self.color)
 		self.rect = self.image.get_rect()
 		self.dead = False
 		self.size = size
@@ -65,8 +66,10 @@ class Game():
 
 	def update(self):
 		self.update_keypress_events()
-		# print self.keypress_events
 		for layer in self.sprites:
+			for sprite in self.sprites[layer].sprites():
+				if sprite.dead:
+					self.remove_sprite(sprite)
 			self.sprites[layer].update(self)
 
 	def draw(self):
@@ -81,10 +84,13 @@ class Game():
 
 
 	def remove_sprite(self, sprite):
+		# for shape in sprite.get_bodies():
+
+		self.space.remove(sprite.body)
 		for layer in self.sprites:
 			if self.sprites[layer].has(sprite):
 				self.sprites[layer].remove(sprite)
-		self.space.remove(sprite.get_bodies())
+		
 
 	def add_collision_handler(self, sprite1, sprite2, collision_handler, collision_type='begin'):
 		type1 = sprite1.shape.collision_type
@@ -110,7 +116,6 @@ class Game():
 				keys_up.append(key)
 		self.keypress_events = self.keypress_events = {"KEY_UP":keys_up,"KEY_DOWN":keys_down,"KEY_HELD":keys_held}
 		self.last_keys_pressed = new_keys_pressed
-		print self.keypress_events
 		
 	def binary_list_to_int_list(self,binary_list):
 		int_list = []

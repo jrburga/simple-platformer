@@ -13,6 +13,8 @@ from Graphics import SpriteSheets
 from Basics import Game
 from Basics import Sprite
 
+from collections import defaultdict
+
 
 class InteractBox(Sprite):
 	def __init__(self, position, size):
@@ -57,14 +59,6 @@ class Player(Sprite):
 		self.torso.friction = 0
 		self.shape.collision_type, self.head.collision_type, self.torso.collision_type = 1, 1, 1
 		self.body.position = position
-		
-
-		self.actions = {
-			K_LEFT: lambda: self.walk(-1),
-			K_RIGHT: lambda: self.walk(1),
-			K_UP: lambda: self.jump()
-		}
-
 
 		self.max_speed = 100*2.
 		self.accel_time = 0.05
@@ -78,7 +72,13 @@ class Player(Sprite):
 
 		self.targetvx = 0
 		self.direction = 1
-		self.body.passing = False
+
+		self.body.pass_through = False
+
+		self.body.kill = False
+
+		self.body.last_pass = None
+
 
 	def get_bodies(self):
 		return [self.body, self.shape, self.head, self.torso]
@@ -91,8 +91,8 @@ class Player(Sprite):
 				N = arbiter.contact_point_set.normal
 				if arbiter.shapes[1].body:
 					if (N.y != 0 and abs(N.x/N.y) < self.shape.friction):
+						self.body.pass_through = []
 						self.grounded = True
-						self.body.passing = False
 						self.air_speed = self.air_speed_max
 				return
 		
@@ -116,7 +116,16 @@ class Player(Sprite):
 			self.grounded = False
 			self.body.apply_impulse_at_local_point(Vec2d(0, self.jump_impulse))
 
+	def drop_down(self):
+		self.body.pass_through = True
+		if self.grounded:
+			self.grounded = False
+			self.body.apply_impulse_at_local_point(Vec2d(0, self.jump_impulse/2))
+
+
 	def passive_update(self, game):
+		if self.body.kill:
+			self.dead = True
 		force = self.body.mass*self.gravity
 		self.body.apply_force_at_local_point(force, (0, 0))
 		self.body.each_arbiter(self.ground_collision)
@@ -137,16 +146,28 @@ class Player(Sprite):
 
 	def active_update(self, game):
 		self.target_vx = 0
-		keys = pygame.key.get_pressed()
-		for player_key in self.actions:
-			if keys[player_key]:
-				self.actions[player_key]()
+		keys = game.keypress_events
+		for key in keys['KEY_DOWN']:
+			if key == K_UP:
+				self.jump()
+			if key == K_DOWN:
+				self.drop_down()
+		for key in keys['KEY_HELD']:
+			if key == K_LEFT:
+				self.walk(-1)
+			if key == K_RIGHT:
+				self.walk(1)
+
+		# for player_key in self.actions:
+		# 	if keys['KEY_HELD'][player_key]:
+		# 		self.actions[player_key]()
 
 		self.shape.surface_velocity = Vec2d(-self.target_vx, 0)
 
 	def update(self, game):
 
 		# check if object is properly "grounded"
+		
 		self.passive_update(game)
 		self.animate()
 		self.active_update(game)
@@ -174,7 +195,6 @@ class PreciseJumper(Player):
 				if arbiter.shapes[1].body:
 					if (N.y != 0 and abs(N.x/N.y) < self.shape.friction):
 						self.grounded = True
-						self.body.passing = False
 				return
 		else:
 			if abs(N.x) == 1:
@@ -311,6 +331,35 @@ class PhysicsBox(Platform):
 		self.image.fill((100, 100, 100))
 		self.shape.collision_type = 5
 
+def kill_sprite(arbiter, space, data):
+	arbiter.shapes[0].body.kill = True
+	space.remove(arbiter.shapes[0])
+	return True
+
+def change_color(arbiter, space, data):
+	arbiter.shapes[0].change = True
+	return True
+
+def transform_sprite(arbiter, space, data):
+	arbiter.shapes[0].transform = True
+	return True
+
+def change_physics(arbiter, space, data):
+	arbiter.shapes[0].body.mass = 2
+	return True
+
+def pass_through(arbiter, space, data):
+	N = arbiter.contact_point_set.normal
+	shape1, shape2 = arbiter.shapes
+	if shape1.body.pass_through and shape2 == shape1.body.last_pass:
+		shape1.body.pass_through = False
+		return False
+	if shape2.body.position.y <= shape1.body.position.y and abs(N.x/N.y) < shape1.friction:
+		shape1.body.pass_through = True
+		shape1.body.last_pass = shape2
+		return True
+	return False
+
 if __name__ == '__main__':
 	game = Game((600, 600))
 	# add objects to the game world
@@ -364,28 +413,6 @@ if __name__ == '__main__':
 	# because the (0, 0) point is in the bottom left (unlike the pygame screen)
 
 	game.running = True
-	def kill_sprite(arbiter, space, data):
-		arbiter.shapes[0].kill = True
-		return True
-
-	def change_color(arbiter, space, data):
-		arbiter.shapes[0].change = True
-		return True
-
-	def transform_sprite(arbiter, space, data):
-		arbiter.shapes[0].transform = True
-		return True
-
-	def change_physics(arbiter, space, data):
-		arbiter.shapes[0].body.mass = 2
-		return True
-
-	def pass_through(arbiter, space, data):
-		N = arbiter.contact_point_set.normal
-		shape1, shape2 = arbiter.shapes
-		if shape2.body.position.y <= shape1.body.position.y and abs(N.x/N.y) < shape1.friction:
-			return True
-		return False
 
 	game.add_collision_handler(kill_box, box, kill_sprite)
 	game.add_collision_handler(color_box, player, change_color)
