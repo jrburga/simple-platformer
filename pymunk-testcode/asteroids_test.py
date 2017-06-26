@@ -90,11 +90,11 @@ class Asteroid(WrapSprite):
 
 
 if __name__ == '__main__':
-	game = Game((600, 600), debug_mode = True)
+	game = Game((600, 600), debug_mode = False)
 	### Add objects to the game world ###
 
 	# add player to the game world
-	player = Player((300, 220))
+	player = Playe
 	player.body.filter = pymunk.ShapeFilter(categories=1)
 	game.add_sprite(player)
 
