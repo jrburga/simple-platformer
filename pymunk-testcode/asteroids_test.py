@@ -28,7 +28,7 @@ class WrapSprite(Sprite):
 
 
 class Player(WrapSprite):
-	def __init__(self, position, game):
+	def __init__(self, position):
 		WrapSprite.__init__(self, position, (0, 0))
 		# set physical properties of ship
 		self.gravity = Vec2d(0, 0)
@@ -45,8 +45,6 @@ class Player(WrapSprite):
 		# tune rocket's forward and turning thrust
 		self.forward_thrust = 500 # as an instantaneous force (impulse)
 		self.turning_speed = 0.1 # as radians per step
-
-		self.game = game
 
 		
 
@@ -123,7 +121,8 @@ if __name__ == '__main__':
 	### Add objects to the game world ###
 
 	# add player to the game world
-	player = Player((300, 220),game)
+	player = Player((300, 220))
+
 	player.body.filter = pymunk.ShapeFilter(categories=1)
 	game.add_sprite(player)
 

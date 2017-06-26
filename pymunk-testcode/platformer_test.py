@@ -31,7 +31,8 @@ class InteractBox(Sprite):
 		self.shape.collision_type = 10
 
 	def passive_update(self, game):
-		self.body.apply_force_at_local_point(self.gravity, (0, 0))
+		force = self.body.mass*self.gravity
+		self.body.apply_force_at_local_point(force, (0, 0))
 
 
 class Player(Sprite):
@@ -45,14 +46,15 @@ class Player(Sprite):
 		self.image.convert()
 
 		self.size = scale
-		self.gravity = Vec2d(0, -2000)
-		self.mass = 3
+		self.gravity = Vec2d(0, -1000) # an acceleration of some sort?
 
-		self.body = pymunk.Body(self.mass, pymunk.inf)
+		self.body = pymunk.Body(3, pymunk.inf)
 		self.shape = pymunk.Circle(self.body,size[0])
 		self.shape.name = 'feet'
 		self.head = pymunk.Circle(self.body, size[0]*2, (0, 25))
+		self.head.friction = 0
 		self.torso = pymunk.Circle(self.body, size[0]*1.5, (0, 10))
+		self.torso.friction = 0
 		self.shape.collision_type, self.head.collision_type, self.torso.collision_type = 1, 1, 1
 		self.body.position = position
 		
@@ -114,8 +116,9 @@ class Player(Sprite):
 			self.grounded = False
 			self.body.apply_impulse_at_local_point(Vec2d(0, self.jump_impulse))
 
-	def passive_update(self):
-		self.body.apply_force_at_local_point(self.gravity, (0, 0))
+	def passive_update(self, game):
+		force = self.body.mass*self.gravity
+		self.body.apply_force_at_local_point(force, (0, 0))
 		self.body.each_arbiter(self.ground_collision)
 
 	def animate(self):
@@ -132,7 +135,7 @@ class Player(Sprite):
 			else:
 				self.image = self.animation.sprite_sheet.image((1, 2))
 
-	def active_update(self):
+	def active_update(self, game):
 		self.target_vx = 0
 		keys = pygame.key.get_pressed()
 		for player_key in self.actions:
@@ -144,9 +147,9 @@ class Player(Sprite):
 	def update(self, game):
 
 		# check if object is properly "grounded"
-		self.passive_update()
+		self.passive_update(game)
 		self.animate()
-		self.active_update()
+		self.active_update(game)
 		self.pymunk2pygame(game.screen)
 		self.rect.x -= self.size[0]/2
 		self.rect.y -= self.size[1]/2+16
