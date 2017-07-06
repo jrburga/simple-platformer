@@ -67,6 +67,15 @@ class Game():
 		self.keypress_events = {"KEY_UP":[],"KEY_DOWN":[],"KEY_HELD":[]}
 		self.last_keys_pressed = []
 
+	def exists(self, sprite):
+		if not sprite:
+			return False
+		for layer in self.sprites:
+			if self.sprites[layer].has(sprite):
+				return True
+		else:
+			return False
+
 	def update(self):
 		self.update_keypress_events()
 		for layer in self.sprites:
@@ -137,8 +146,7 @@ class Game():
 			self.update()
 			if self.debug_mode:
 				self.space.debug_draw(draw_options)
-			else:
-				self.draw()
+			self.draw()
 
 			self.space.step(self.dt)
 			self.clock.tick(self.fps)

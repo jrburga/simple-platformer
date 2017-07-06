@@ -1,0 +1,64 @@
+
+
+GameObject
+	has components (stealing from Unity)
+	Unity also gives all objects a Transform, which defines its orientation in space. But what if your object doesn't exist in space? 0_0
+
+Components
+	The meat of a game object
+	multiples types of components that describe the behaviour and appearance of a GameObject
+
+	Unity's division of components
+		Mesh
+			Filter & Renderer & Text
+		Particle FX
+			Particles & Trails
+		Physics
+			Rigidbody & Colliders
+		Physics 2D
+			Rigidbody 2D & Colliders
+		Navigation
+			Nav Mesh (AI movement)
+		Audio
+			Listener & Source & Filters
+		Rendering
+			Camera & Lights & Sprites & Canvas & UI
+		Layout
+			Rect & Canvas?
+		Misc
+			Animations & Terrain
+		Analytics
+			Tracker (social media?)
+		Scripts
+			Where this breaks down a little
+		Event
+			System & Trigger & Raycast
+		Network
+			All things Network
+		UI
+			User Interface
+		AR
+			Augmented Reality
+	I think what should be said about Components is that it should be easily allowable to create a new component that deals with a different kind of behavior/appearance.
+
+	Modularity is key.
+
+	However, this basically makes the GameObject the canvas for all possible game funtionality. This probably isn't what we want, but it should suffice it to say that a game object doesn't necessarily have an appearance of some sort. If you can say something like "A timer is a game object", then you're basically letting everything in the game world be a game object.
+::
+Game > 
+
+	
+Assets >
+	This might be useful (map images or shapes to things)
+	apple > Apple.png
+Shapes >
+	This could get complicated 
+Objects >
+	Define the objects in the game, where each object is a GameObject
+	and a GameObject should have a clear abstraction.
+::
+
+New kinds of GameObjects that are observed within a game should be handled by some kind of Type system, and not through direct inheritance. 
+
+While I have been tempted to create a base game object that has all the attributes, that just feels like a really bad rabit hole to go down and is just poor design.
+
